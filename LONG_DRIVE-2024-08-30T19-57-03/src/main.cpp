@@ -2,17 +2,17 @@
 /*                                                                            */
 /*    Module:       main.cpp                                                  */
 /*    Author:       VEX                                                       */
-/*    Created:      Thu Sep 26 2019                                           */
-/*    Description:  Competition Template                                      */
+/*    Created:      Mon Sep 11 2001                                           */
+/*    Description:   attack plans                                             */
 /*                                                                            */
 /*----------------------------------------------------------------------------*/
 
-// ---- START VEXCODE CONFIGURED DEVICES ----
-// Robot Configuration:
-// [Name]               [Type]        [Port(s)]
-// Controller1          controller                    
-// Drivetrain           drivetrain    1, 2, 3, 4      
-// ---- END VEXCODE CONFIGURED DEVICES ----
+// ---- START VEXCODE CONFIGURED DEVICES ----   //
+// Robot Configuration:                         //
+// [Name]               [Type]        [Port(s)] //
+// controller            controller             //
+// Drivetrain           drivetrain    1, 2, 3, 4//    
+// ---- END VEXCODE CONFIGURED DEVICES ----     //
 
 #include "vex.h"
 
@@ -20,15 +20,97 @@ using namespace vex;
 
 // A global instance of competition
 competition Competition;
-motor LF = motor(PORT20, ratio18_1, true);
-motor LM = motor(PORT19, ratio18_1, true);
-motor LB = motor(PORT10, ratio18_1, true);
+
+//robot config.cpp stuff
+motor LF = motor(PORT8, ratio18_1, true);
+motor LM = motor(PORT10, ratio18_1, true);
+motor LB = motor(PORT19, ratio18_1, true);
 motor_group LeftDriveSmart = motor_group(LF, LM, LB);
-motor RF = motor(PORT15, ratio18_1, false);
-motor RM = motor(PORT1, ratio18_1, false);
+motor RF = motor(PORT1, ratio18_1, false);
+motor RM = motor(PORT15, ratio18_1, false);
 motor RB = motor(PORT2, ratio18_1, false);
 motor_group RightDriveSmart = motor_group(RF, RM, RB);
 drivetrain Drivetrain = drivetrain(LeftDriveSmart, RightDriveSmart, 319.19, 295, 40, mm, 1);
+
+
+
+void PID_turn(double LeftVelocity,double RightVelocity,double inches_traveled) {
+  LeftDriveSmart.setVelocity(LeftVelocity, pct);
+  RightDriveSmart.setVelocity(RightVelocity,pct);
+  Drivetrain.driveFor(inches_traveled, inches,false);
+  wait(1,sec);
+  Drivetrain.stop();
+}
+// VEXcode generated functions
+// define variable for remote controller enable/disable
+bool RemoteControlCodeEnabled = true;
+// define variables used for controlling motors based on controller inputs
+bool DrivetrainLNeedsToBeStopped_Controller1 = true;
+bool DrivetrainRNeedsToBeStopped_Controller1 = true;
+
+// define a task that will handle monitoring inputs from Controller1
+int rc_auto_loop_function_Controller1() {
+  // process the controller input every 20 milliseconds
+  // update the motors based on the input values
+  while(true) {
+    if(RemoteControlCodeEnabled) {
+      // calculate the drivetrain motor velocities from the controller joystick axies
+      // left = Axis3
+      // right = Axis2
+      int drivetrainLeftSideSpeed = Controller1.Axis3.position();
+      int drivetrainRightSideSpeed = Controller1.Axis2.position();
+      
+      // check if the value is inside of the deadband range
+      if (drivetrainLeftSideSpeed < 5 && drivetrainLeftSideSpeed > -5) {
+        // check if the left motor has already been stopped
+        if (DrivetrainLNeedsToBeStopped_Controller1) {
+          // stop the left drive motor
+          LeftDriveSmart.stop();
+          // tell the code that the left motor has been stopped
+          DrivetrainLNeedsToBeStopped_Controller1 = false;
+        }
+      } else {
+        // reset the toggle so that the deadband code knows to stop the left motor nexttime the input is in the deadband range
+        DrivetrainLNeedsToBeStopped_Controller1 = true;
+      }
+      // check if the value is inside of the deadband range
+      if (drivetrainRightSideSpeed < 5 && drivetrainRightSideSpeed > -5) {
+        // check if the right motor has already been stopped
+        if (DrivetrainRNeedsToBeStopped_Controller1) {
+          // stop the right drive motor
+          RightDriveSmart.stop();
+          // tell the code that the right motor has been stopped
+          DrivetrainRNeedsToBeStopped_Controller1 = false;
+        }
+      } else {
+        // reset the toggle so that the deadband code knows to stop the right motor next time the input is in the deadband range
+        DrivetrainRNeedsToBeStopped_Controller1 = true;
+      }
+      
+      // only tell the left drive motor to spin if the values are not in the deadband range
+      if (DrivetrainLNeedsToBeStopped_Controller1) {
+        LeftDriveSmart.setVelocity(drivetrainLeftSideSpeed, percent);
+        LeftDriveSmart.spin(forward);
+      }
+      // only tell the right drive motor to spin if the values are not in the deadband range
+      if (DrivetrainRNeedsToBeStopped_Controller1) {
+        RightDriveSmart.setVelocity(drivetrainRightSideSpeed, percent);
+        RightDriveSmart.spin(forward);
+      }
+    }
+    // wait before repeating the process
+    wait(20, msec);
+  }
+  return 0;
+}
+
+void vexcodeInit( void ) {
+  task rc_auto_loop_task_Controller1(rc_auto_loop_function_Controller1);
+}
+
+
+//robot config.cpp stuff
+
 
 
 bool Clamping = false;
@@ -151,6 +233,8 @@ void pre_auton(void) {
   // Initializing Robot Configuration. DO NOT REMOVE!
   vexcodeInit();
 
+  Drivetrain.setDriveVelocity(100,percent);
+  intake.setVelocity(100, percent);
   // All activities that occur before the competition starts
   // Example: clearing encoders, setting servo positions, ...
 }
@@ -166,7 +250,7 @@ void pre_auton(void) {
 /*---------------------------------------------------------------------------*/
 
 void autonomous(void) {
-  vex::task billWiTheScienceFi(PID_Drive);
+  /*vex::task DrivetrainPID(PID_Drive);
 
   ResetDriveSensors = true;
   desiredValue = 300;
@@ -176,7 +260,10 @@ void autonomous(void) {
 
   ResetDriveSensors = true;
   desiredValue = 300;
-  desiredTurnValue = 300;
+  desiredTurnValue = 300;*/
+
+  //chris this ones for you: first value is left side velocity, second value is right side velocity, third value is inches traveled.
+  PID_turn(100, 50, 20);
 
 }
 
@@ -220,11 +307,23 @@ void usercontrol(void) {
     }else if (true){
       intake.stop();
     }
+  LeftDriveSmart.setVelocity(100, pct);
+  RightDriveSmart.setVelocity(100,pct);
+  Drivetrain.driveFor(0,inches);
+
+//
+  PID_turn(100, 100, 0);
+//  
 
     wait(125, msec); // Sleep the task for a short amount of time to
                     // prevent wasted resources.
+
   }
 }
+
+
+
+//kasen did not miss a semicolon - mckay
 
 //
 // Main will set up the competition functions and callbacks.
