@@ -24,14 +24,14 @@ competition Competition;
 //robot config.cpp stuff
 motor LF = motor(PORT8, ratio18_1, true);
 motor LM = motor(PORT10, ratio18_1, true);
-motor LB = motor(PORT19, ratio18_1, true);
+motor LB = motor(PORT2, ratio18_1, true);
 motor_group LeftDriveSmart = motor_group(LF, LM, LB);
-motor RF = motor(PORT1, ratio18_1, false);
+motor RF = motor(PORT3, ratio18_1, false);
 motor RM = motor(PORT15, ratio18_1, false);
-motor RB = motor(PORT2, ratio18_1, false);
+motor RB = motor(PORT1, ratio18_1, false);
 motor_group RightDriveSmart = motor_group(RF, RM, RB);
 drivetrain Drivetrain = drivetrain(LeftDriveSmart, RightDriveSmart, 319.19, 295, 40, mm, 1);
-
+inertial Inertial1 = inertial(PORT20);
 
 
 void PID_turn(double LeftVelocity,double RightVelocity,double inches_traveled) {
@@ -40,6 +40,11 @@ void PID_turn(double LeftVelocity,double RightVelocity,double inches_traveled) {
   Drivetrain.driveFor(inches_traveled, inches,false);
   wait(1,sec);
   Drivetrain.stop();
+}
+
+void Reset_Both_Sides(double same_velocity) {
+  LeftDriveSmart.setVelocity(same_velocity, pct);
+  RightDriveSmart.setVelocity(same_velocity,pct);
 }
 // VEXcode generated functions
 // define variable for remote controller enable/disable
@@ -57,9 +62,10 @@ int rc_auto_loop_function_Controller1() {
       // calculate the drivetrain motor velocities from the controller joystick axies
       // left = Axis3
       // right = Axis2
+      
       int drivetrainLeftSideSpeed = Controller1.Axis3.position();
       int drivetrainRightSideSpeed = Controller1.Axis2.position();
-      
+
       // check if the value is inside of the deadband range
       if (drivetrainLeftSideSpeed < 5 && drivetrainLeftSideSpeed > -5) {
         // check if the left motor has already been stopped
@@ -138,24 +144,27 @@ double turnkd = 0.0;
 int desiredValue = 200;
 int desiredTurnValue = 0;
 
-int Error; //sensor value - desired value : position
-int PrevError = 0; //position 20 miliseconds ago
-int Derivative; //Error - PrevError : speed
-int TotalError; //TotalError = TotalError + Error
+int Error; 
+//sensor value - desired value : position
+int PrevError = 0; 
+//position 20 miliseconds ago
+int Derivative; 
+//Error - PrevError : speed
+int TotalError; 
+//TotalError = TotalError + Error
 
 int turnError;
 int turnPrevError = 0;
 int turnDerivative;
 int turnTotalError;
 
-bool ResetDriveSensors = false;
+bool ResetDriveSensors = true;
 
 //varibles modified for use:
 bool enablePID_Drive = true;
 int PID_Drive (){
 
 while (enablePID_Drive) {
-
   if (ResetDriveSensors) {
     ResetDriveSensors = false;
     LeftDriveSmart.setPosition(0,degrees);
@@ -224,7 +233,6 @@ while (enablePID_Drive) {
 
   PrevError = Error;
   turnPrevError = Error;
-  vex::task::sleep(20);
 }
 
 return 1;
@@ -252,7 +260,6 @@ void pre_auton(void) {
 void autonomous(void) {
   /*vex::task DrivetrainPID(PID_Drive);
 
-  ResetDriveSensors = true;
   desiredValue = 300;
   desiredTurnValue = 600;
 
@@ -263,9 +270,23 @@ void autonomous(void) {
   desiredTurnValue = 300;*/
 
   //chris this ones for you: first value is left side velocity, second value is right side velocity, third value is inches traveled.
-  PID_turn(100, 50, 20);
-
-}
+  /*PID_turn(0, 100, 12);
+  intake.spin(forward);
+  intake.stop();
+  PID_turn(100, 0, 10);
+  Reset_Both_Sides(100);
+  Drivetrain.driveFor(reverse,20,inches);*/
+  Drivetrain.setDriveVelocity(70, percent);
+  Inertial1.calibrate();
+  intake.spinFor(forward,1000,degrees,false);
+  wait(1.5,sec);
+  Drivetrain.driveFor(forward,6.9,inches);
+  Drivetrain.turnFor(left,54.5,degrees);
+  Clamp.set(true);
+  Drivetrain.setDriveVelocity(50, percent);
+  Drivetrain.driveFor(reverse,10,inches);
+  Clamp.set(false);
+} 
 
 /*---------------------------------------------------------------------------*/
 /*                                                                           */
@@ -278,6 +299,7 @@ void autonomous(void) {
 /*---------------------------------------------------------------------------*/
 
 void usercontrol(void) {
+  //enablePID_Drive = false;
   // User control code here, inside the loop
   while (1) {
     // This is the main execution loop for the user control program.
@@ -288,6 +310,8 @@ void usercontrol(void) {
     // Insert user code here. This is where you use the joystick values to
     // update your motors, etc.
     // ........................................................................
+
+
 
     // Clamp toggle
     if (Controller1.ButtonY.pressing()) {
@@ -307,15 +331,12 @@ void usercontrol(void) {
     }else if (true){
       intake.stop();
     }
-  LeftDriveSmart.setVelocity(100, pct);
-  RightDriveSmart.setVelocity(100,pct);
-  Drivetrain.driveFor(0,inches);
+  //LeftDriveSmart.setVelocity(100, pct);
+  //RightDriveSmart.setVelocity(100,pct);
+  
 
-//
-  PID_turn(100, 100, 0);
-//  
 
-    wait(125, msec); // Sleep the task for a short amount of time to
+    wait(.2, sec); // Sleep the task for a short amount of time to
                     // prevent wasted resources.
 
   }

@@ -27,7 +27,7 @@ motor_group RightDriveSmart = motor_group(RF, RM, RB);*/
 motor intake = motor(PORT9, ratio6_1, false);
 
 // Pistons
-digital_out Clamp = digital_out(Brain.ThreeWirePort.A);
+digital_out Clamp = digital_out(Brain.ThreeWirePort.H);
 digital_out PTO = digital_out(Brain.ThreeWirePort.B);
 
 
